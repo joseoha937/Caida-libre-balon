@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Caída libre: el balón del recreo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+:root{--bg:#eef2f5;--panel:#fff;--ink:#1b2430;--mute:#5d6b7a;--line:#cfd8e0;--acc:#d98e00;--accsoft:#fff1cf;--bad:#c0392b;--sky:#dcebf7;--wall:#c9b79c;--wall2:#b8a583;--ground:#8a9a7b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12171d;--panel:#1b222b;--ink:#e7edf3;--mute:#9aa8b6;--line:#2f3a46;--acc:#f0b429;--accsoft:#3a2f12;--bad:#ff7a6b;--sky:#1d2b3a;--wall:#6d6250;--wall2:#5a5041;--ground:#3f4a38}}
+:root[data-theme="dark"]{--bg:#12171d;--panel:#1b222b;--ink:#e7edf3;--mute:#9aa8b6;--line:#2f3a46;--acc:#f0b429;--accsoft:#3a2f12;--bad:#ff7a6b;--sky:#1d2b3a;--wall:#6d6250;--wall2:#5a5041;--ground:#3f4a38}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Atkinson Hyperlegible",system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.7rem;line-height:1.15;margin:0 0 8px}
+h2{font-size:1.1rem;margin:0 0 10px}
+.problem{background:var(--panel);border-left:5px solid var(--acc);padding:12px 16px;border-radius:6px;color:var(--ink);max-width:78ch}
+.problem p{margin:0 0 6px}.problem p:last-child{margin:0;color:var(--mute);font-size:.92rem}
+.grid{display:grid;gap:16px;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);margin-top:16px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
+canvas{width:100%;height:auto;display:block;border-radius:6px}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+button,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 12px;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.site.on{background:var(--accsoft);border-color:var(--acc);font-weight:700}
+.go{background:var(--acc);color:#1b1b1b;border-color:var(--acc);font-weight:700}
+.sw{display:flex;gap:6px;align-items:center}
+.seg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.live{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.live div{background:var(--bg);border-radius:6px;padding:8px 10px}
+.live b{display:block;font-size:1.35rem;font-variant-numeric:tabular-nums}
+.live span{color:var(--mute);font-size:.85rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:.92rem}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--mute);font-weight:700}
+.empty{color:var(--mute);padding:8px 0}
+.note{color:var(--mute);font-size:.9rem;margin:8px 0 0}
+.air{color:var(--bad);font-weight:700}
+label.f{display:flex;gap:6px;align-items:center;font-size:.9rem;color:var(--mute)}
+input[type=number]{font:inherit;width:84px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px}
+</style>
+</head>
+<body>
+<main>
+<h1>Caída libre: el balón que se escapa en el recreo</h1>
+<div class="problem">
+<p>Un balón de fútbol de <b>0,45 kg</b> se escapa de las manos de un estudiante y cae desde el pabellón de aulas hasta el patio. El comité de seguridad quiere saber <b>cuánto tiempo hay para avisar</b> a quienes están abajo y <b>con qué velocidad llega al suelo</b>.</p>
+<p>Cada piso mide 4 m. Se suma 1 m de baranda o parapeto. Torre del tanque: 6 m sobre la azotea (dato editable abajo).</p>
+</div>
+
+<div class="grid">
+<section class="card">
+<h2>Simulación</h2>
+<div class="row" id="sites"></div>
+<div class="row">
+<div class="sw seg" id="air"><span>Resistencia del aire:</span><button data-v="0" class="on">No</button><button data-v="1">Sí</button></div>
+<label class="f">Velocidad
+<select id="spd"><option value="1">1× (real)</option><option value="0.5" selected>0,5×</option><option value="0.25">0,25×</option></select></label>
+</div>
+<canvas id="cv" width="600" height="440" aria-label="Animación del balón en caída"></canvas>
+<div class="live" aria-live="off">
+<div><span>Tiempo</span><b id="lt">0,00 s</b></div>
+<div><span>Altura del balón</span><b id="lh">–</b></div>
+<div><span>Velocidad</span><b id="lv">0,0 m/s</b></div>
+</div>
+<div class="row" style="margin-top:12px">
+<button class="go" id="drop">Soltar balón</button>
+<button id="reset">Reiniciar</button>
+</div>
+</section>
+
+<section class="card">
+<h2>Comparación de los cuatro puntos</h2>
+<div class="scroll"><table id="cmp"></table></div>
+<p class="note">Sin aire: t = √(2h/g) y v = g·t, con g = 9,81 m/s². Con aire: arrastre cuadrático, v∞ = <span id="vt"></span> m/s.</p>
+<div class="row" style="margin-top:10px">
+<label class="f">Diámetro (m)<input type="number" id="dia" value="0.22" step="0.01" min="0.1" max="0.4"></label>
+<label class="f">Cd<input type="number" id="cd" value="0.25" step="0.05" min="0.1" max="1"></label>
+<label class="f">Tanque (m)<input type="number" id="tank" value="6" step="1" min="1" max="20"></label>
+</div>
+<p class="note" id="concl"></p>
+</section>
+</div>
+
+<section class="card" style="margin-top:16px">
+<div class="row" style="justify-content:space-between;align-items:center">
+<h2 style="margin:0">Historial de caídas</h2>
+<button id="clear">Borrar historial</button>
+</div>
+<div class="scroll"><table id="hist"></table></div>
+</section>
+</main>
+
+<script>
+const g=9.81,m=0.45,rho=1.2;
+let sites=[],siteIdx=0,air=false,hist=[],anim=null;
+const $=id=>document.getElementById(id);
+const f=(x,d=2)=>x.toFixed(d).replace('.',',');
+
+function params(){
+  const D=+$('dia').value||0.22,Cd=+$('cd').value||0.25,A=Math.PI*D*D/4;
+  const k=0.5*rho*Cd*A;
+  return {vt:Math.sqrt(m*g/k)};
+}
+function buildSites(){
+  const T=+$('tank').value||6;
+  sites=[
+    {n:'Baranda 2.º piso',h:4+1},
+    {n:'Baranda 3.er piso',h:8+1},
+    {n:'Azotea',h:12+1},
+    {n:'Torre del tanque',h:12+T}
+  ];
+}
+function fall(h,useAir){
+  if(!useAir){const t=Math.sqrt(2*h/g);return {t,v:g*t};}
+  const {vt}=params();
+  const t=(vt/g)*Math.acosh(Math.exp(g*h/(vt*vt)));
+  return {t,v:vt*Math.tanh(g*t/vt)};
+}
+function stateAt(t,useAir){
+  if(!useAir)return {y:0.5*g*t*t,v:g*t};
+  const {vt}=params();
+  return {y:(vt*vt/g)*Math.log(Math.cosh(g*t/vt)),v:vt*Math.tanh(g*t/vt)};
+}
+function renderSites(){
+  const box=$('sites');box.innerHTML='';
+  sites.forEach((s,i)=>{
+    const b=document.createElement('button');
+    b.className='site'+(i===siteIdx?' on':'');
+    b.textContent=s.n+' ('+f(s.h,0)+' m)';
+    b.onclick=()=>{if(anim)return;siteIdx=i;renderSites();idle();};
+    box.appendChild(b);
+  });
+}
+function renderCmp(){
+  $('vt').textContent=f(params().vt,1);
+  let h='<tr><th>Punto</th><th>Altura</th><th>t sin aire</th><th>v sin aire</th><th>t con aire</th><th>v con aire</th></tr>';
+  sites.forEach(s=>{
+    const a=fall(s.h,false),b=fall(s.h,true);
+    h+='<tr><td>'+s.n+'</td><td>'+f(s.h,0)+' m</td><td>'+f(a.t)+' s</td><td>'+f(a.v,1)+' m/s</td><td>'+f(b.t)+' s</td><td>'+f(b.v,1)+' m/s</td></tr>';
+  });
+  $('cmp').innerHTML=h;
+  const lo=fall(sites[0].h,false),hi=fall(sites[3].h,false);
+  $('concl').textContent='Desde la baranda del 2.º piso hay solo '+f(lo.t)+' s para avisar (impacto a '+f(lo.v*3.6,0)+' km/h); desde la torre, '+f(hi.t)+' s (impacto a '+f(hi.v*3.6,0)+' km/h). La masa no cambia el tiempo en el vacío, pero sí la energía del golpe.';
+}
+function renderHist(){
+  if(!hist.length){$('hist').innerHTML='<tr><td class="empty">Aún no hay caídas. Elige un punto y pulsa “Soltar balón”.</td></tr>';return;}
+  let h='<tr><th>N.º</th><th>Punto</th><th>Altura</th><th>Aire</th><th>Tiempo de caída</th><th>Velocidad</th><th>Energía</th></tr>';
+  hist.slice().reverse().forEach(r=>{
+    h+='<tr><td>'+r.n+'</td><td>'+r.name+'</td><td>'+f(r.h,0)+' m</td><td class="'+(r.air?'air':'')+'">'+(r.air?'Sí':'No')+'</td><td>'+f(r.t)+' s</td><td>'+f(r.v,1)+' m/s ('+f(r.v*3.6,0)+' km/h)</td><td>'+f(0.5*m*r.v*r.v,1)+' J</td></tr>';
+  });
+  $('hist').innerHTML=h;
+}
+
+/* ---- dibujo ---- */
+const cv=$('cv'),ctx=cv.getContext('2d');
+const W=600,H=440,GY=400,HMAX=22,S=(GY-24)/HMAX;
+const cs=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function draw(ballH){
+  const sky=cs('--sky'),wall=cs('--wall'),wall2=cs('--wall2'),gr=cs('--ground'),ink=cs('--ink'),acc=cs('--acc'),mute=cs('--mute');
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=sky;ctx.fillRect(0,0,W,GY);
+  ctx.fillStyle=gr;ctx.fillRect(0,GY,W,H-GY);
+  const y=h=>GY-h*S;
+  /* edificio: 3 pisos + azotea */
+  const bx=60,bw=190;
+  ctx.fillStyle=wall;ctx.fillRect(bx,y(12),bw,12*S);
+  ctx.strokeStyle=wall2;ctx.lineWidth=2;
+  for(let i=1;i<=3;i++){ctx.beginPath();ctx.moveTo(bx,y(4*i));ctx.lineTo(bx+bw,y(4*i));ctx.stroke();}
+  ctx.fillStyle=wall2;
+  for(let fl=0;fl<3;fl++)for(let c=0;c<5;c++){ctx.fillRect(bx+14+c*36,y(4*fl+3),22,1.6*S);}
+  /* parapeto */
+  ctx.fillStyle=wall2;ctx.fillRect(bx-4,y(13),bw+8,1*S);
+  /* torre tanque */
+  const T=sites[3].h-12;
+  ctx.fillStyle=wall2;ctx.fillRect(bx+bw-70,y(12+T*0.6),8,T*0.6*S);ctx.fillRect(bx+bw-30,y(12+T*0.6),8,T*0.6*S);
+  ctx.fillStyle=cs('--acc');ctx.fillRect(bx+bw-76,y(12+T),60,T*0.4*S);
+  ctx.strokeStyle=ink;ctx.lineWidth=1;ctx.strokeRect(bx+bw-76,y(12+T),60,T*0.4*S);
+  /* marcas de altura */
+  ctx.font='12px "Atkinson Hyperlegible",sans-serif';
+  sites.forEach((s,i)=>{
+    const yy=y(s.h);
+    ctx.strokeStyle=i===siteIdx?acc:mute;ctx.lineWidth=i===siteIdx?2:1;
+    ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(bx+bw+4,yy);ctx.lineTo(W-90,yy);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=i===siteIdx?ink:mute;ctx.textAlign='left';
+    ctx.fillText(f(s.h,0)+' m',W-84,yy+4);
+  });
+  /* estudiante */
+  const sy=y(sites[siteIdx].h);
+  ctx.fillStyle=ink;ctx.beginPath();ctx.arc(bx+bw+16,sy-14,5,0,7);ctx.fill();
+  ctx.fillRect(bx+bw+13,sy-9,6,9);
+  /* personas abajo */
+  ctx.fillStyle=ink;
+  [300,330,360].forEach(px=>{ctx.beginPath();ctx.arc(px+120,GY-17,5,0,7);ctx.fill();ctx.fillRect(px+117,GY-12,6,12);});
+  /* balón */
+  if(ballH!==null){
+    const bxp=bx+bw+34,by=y(ballH)-5;
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(bxp,by,7,0,7);ctx.fill();
+    ctx.strokeStyle='#111';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='#111';ctx.beginPath();ctx.arc(bxp,by,2.6,0,7);ctx.fill();
+  }
+  ctx.strokeStyle=ink;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,GY);ctx.lineTo(W,GY);ctx.stroke();
+}
+function idle(){
+  draw(sites[siteIdx].h);
+  $('lt').textContent='0,00 s';$('lh').textContent=f(sites[siteIdx].h,1)+' m';$('lv').textContent='0,0 m/s';
+}
+function drop(){
+  if(anim)return;
+  const s=sites[siteIdx],useAir=air,tot=fall(s.h,useAir).t,spd=+$('spd').value;
+  $('drop').disabled=true;
+  const t0=performance.now();
+  const step=now=>{
+    const t=Math.min((now-t0)/1000*spd,tot);
+    const st=stateAt(t,useAir);
+    const bh=Math.max(s.h-st.y,0);
+    draw(bh);
+    $('lt').textContent=f(t)+' s';$('lh').textContent=f(bh,1)+' m';$('lv').textContent=f(st.v,1)+' m/s';
+    if(t<tot){anim=requestAnimationFrame(step);}
+    else{
+      anim=null;$('drop').disabled=false;
+      const r=fall(s.h,useAir);
+      $('lt').textContent=f(r.t)+' s';$('lv').textContent=f(r.v,1)+' m/s';
+      hist.push({n:hist.length+1,name:s.n,h:s.h,air:useAir,t:r.t,v:r.v});
+      renderHist();
+    }
+  };
+  anim=requestAnimationFrame(step);
+}
+$('drop').onclick=drop;
+$('reset').onclick=()=>{if(anim){cancelAnimationFrame(anim);anim=null;$('drop').disabled=false;}idle();};
+$('clear').onclick=()=>{hist=[];renderHist();};
+document.querySelectorAll('#air button').forEach(b=>b.onclick=()=>{
+  if(anim)return;
+  air=b.dataset.v==='1';
+  document.querySelectorAll('#air button').forEach(x=>x.classList.toggle('on',x===b));
+});
+['dia','cd','tank'].forEach(id=>$(id).addEventListener('input',()=>{
+  if(anim)return;buildSites();renderSites();renderCmp();idle();
+}));
+buildSites();renderSites();renderCmp();renderHist();idle();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(!anim)idle();});
+</script>
+</body>
+</html>
